@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import EmployeeOverview from '../employee/EmployeeOverview';
 
 // progress -> color (mirrors prototype thresholds)
 const progColor = (p) =>
@@ -13,11 +14,16 @@ const progColor = (p) =>
 
 const Overview = () => {
   const { user } = useAuth();
+
+  if (user?.role === 'Employee' || user?.role === 'Intern') {
+    return <EmployeeOverview />;
+  }
   const { addToast } = useToast();
   const navigate = useNavigate();
 
   const [showAttention, setShowAttention] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('2026-06-08');
+  const [showMissing, setShowMissing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [logs, setLogs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [people, setPeople] = useState([]);
@@ -65,6 +71,10 @@ const Overview = () => {
     (t) => t.status === 'Overdue' || t.status === 'Blocked'
   );
 
+  const employees = people.filter(p => p.role === 'Employee' || p.role === 'Intern');
+  const submittedIds = new Set(logs.map(l => (l.employee?._id || l.employee)?.toString()));
+  const missingMembers = employees.filter(p => !submittedIds.has(p._id?.toString()));
+
   // Tracker summary across all member logs
   const allTasks = logs.flatMap((l) => l.tasks || []);
   const completed = allTasks.filter((t) => t.status === 'Completed').length;
@@ -93,7 +103,7 @@ const Overview = () => {
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '14px', marginBottom: '24px' }}>
         <div className="stat-card" onClick={() => navigate('/dashboard/projects')} style={{ cursor: 'pointer' }}
           onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--brand)')}
           onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}>
@@ -128,6 +138,22 @@ const Overview = () => {
           </div>
           <div className="stat-value">{attentionTasks.length}</div>
           <div className="stat-delta delta-down">overdue or blocked</div>
+        </div>
+
+        <div className="stat-card" onClick={() => setShowMissing(!showMissing)} style={{ cursor: 'pointer' }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = missingMembers.length > 0 ? 'var(--danger)' : 'var(--success)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}>
+          <div className="stat-card-accent" style={{ background: missingMembers.length > 0 ? 'var(--danger)' : 'var(--success)' }}></div>
+          <div className="stat-label">
+            <i className="fas fa-user-clock" style={{ color: missingMembers.length > 0 ? 'var(--danger)' : 'var(--success)' }}></i> Missing logs
+            <i className={`fas fa-chevron-${showMissing ? 'up' : 'down'}`} style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text3)' }}></i>
+          </div>
+          <div className="stat-value" style={{ color: missingMembers.length > 0 ? 'var(--danger)' : 'var(--success)' }}>
+            {missingMembers.length}
+          </div>
+          <div className={`stat-delta ${missingMembers.length > 0 ? 'delta-down' : 'delta-up'}`}>
+            {missingMembers.length === 0 ? 'all submitted today' : `haven't submitted today`}
+          </div>
         </div>
       </div>
 
@@ -168,6 +194,35 @@ const Overview = () => {
             <div style={{ display: 'flex', gap: '10px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
               <Button variant="danger" size="sm" icon="paper-plane" onClick={handleEscalate}>Escalate both</Button>
               <Button variant="secondary" size="sm" icon="list-check" onClick={() => navigate('/dashboard/tasks')}>View all tasks</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missing members panel */}
+      {showMissing && missingMembers.length > 0 && (
+        <div style={{ marginBottom: '24px', animation: 'fadeIn 0.2s ease' }}>
+          <div className="card" style={{ borderTop: '3px solid var(--danger)' }}>
+            <div className="section-hdr" style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fas fa-user-clock" style={{ color: 'var(--danger)', fontSize: '15px' }}></i>
+                <div className="section-title">Haven't submitted today</div>
+                <Badge variant="danger">{missingMembers.length} members</Badge>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowMissing(false)}>
+                <i className="fas fa-xmark"></i> Close
+              </Button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {missingMembers.map(m => (
+                <div key={m._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', background: 'var(--bg)' }}>
+                  <Avatar initials={m.avatar?.initials} bg={m.avatar?.bg} color={m.avatar?.color} size="sm" />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{m.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{m.designation}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -27,10 +27,13 @@ const TITLES = {
 };
 
 const NOTIF_ICON = {
-  leave_request: { bg: '#FCE7F3', color: '#9D174D', icon: 'fa-umbrella-beach' },
-  payslip: { bg: '#DBEAFE', color: '#1E40AF', icon: 'fa-file-invoice-dollar' },
-  attendance: { bg: '#FEF3C7', color: '#92400E', icon: 'fa-clock' },
-  default: { bg: '#FEE2E2', color: '#991B1B', icon: 'fa-triangle-exclamation' },
+  leave_request:  { bg: '#FCE7F3', color: '#9D174D', icon: 'fa-umbrella-beach' },
+  wfh_request:    { bg: '#DBEAFE', color: '#1E40AF', icon: 'fa-house-laptop' },
+  leave_approved: { bg: '#D1FAE5', color: '#065F46', icon: 'fa-circle-check' },
+  leave_rejected: { bg: '#FEE2E2', color: '#991B1B', icon: 'fa-circle-xmark' },
+  payslip:        { bg: '#DBEAFE', color: '#1E40AF', icon: 'fa-file-invoice-dollar' },
+  attendance:     { bg: '#FEF3C7', color: '#92400E', icon: 'fa-clock' },
+  default:        { bg: '#FEE2E2', color: '#991B1B', icon: 'fa-triangle-exclamation' },
 };
 
 const HRLayout = () => {
@@ -39,10 +42,14 @@ const HRLayout = () => {
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState([]);
+  const [pendingLeaves, setPendingLeaves] = useState(0);
   const panelRef = useRef(null);
 
   useEffect(() => {
     api.get('/api/notifications').then(({ data }) => setNotifs(data || [])).catch(() => {});
+    api.get('/api/leaves').then(({ data }) => {
+      setPendingLeaves((data || []).filter(l => l.status === 'Pending').length);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -88,7 +95,7 @@ const HRLayout = () => {
           ) : (
             <div key={item.id} className={`hr-nav-item ${isActive(item.path) ? 'active' : ''}`} onClick={() => navigate(item.path)}>
               <i className={`fas ${item.icon}`}></i><span>{item.label}</span>
-              {item.badge && <span className="hr-nav-badge">{item.badge}</span>}
+              {item.id === 'leave' && pendingLeaves > 0 && <span className="hr-nav-badge">{pendingLeaves}</span>}
             </div>
           )
         )}

@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import api from '../../services/api';
 
 const NAV_ITEMS = {
   'Founding Team': [
     { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2', path: '/dashboard' },
-    { id: 'projects', label: 'Projects', icon: 'fa-folder-open', badge: 'brand', path: '/dashboard/projects' },
+    { id: 'projects', label: 'Projects', icon: 'fa-folder-open', path: '/dashboard/projects' },
     { id: 'team', label: 'Team', icon: 'fa-users', path: '/dashboard/team' },
-    { id: 'tasks', label: 'Tasks', icon: 'fa-list-check', badge: 'warn', path: '/dashboard/tasks' },
+    { id: 'tasks', label: 'Tasks', icon: 'fa-list-check', path: '/dashboard/tasks' },
   ],
   'HR': [
     { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2', path: '/hr' },
@@ -18,14 +19,16 @@ const NAV_ITEMS = {
   ],
   'Employee': [
     { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2', path: '/dashboard' },
-    { id: 'tasks', label: 'My Tasks', icon: 'fa-list-check', badge: 'warn', path: '/dashboard/tasks' },
-    { id: 'leaves', label: 'My Leaves', icon: 'fa-umbrella-beach', path: '/dashboard/leaves', section: 'My Account' },
+    { id: 'daily-status', label: 'Daily Status', icon: 'fa-pen-to-square', path: '/dashboard/daily-status' },
+    { id: 'tasks', label: 'My Tasks', icon: 'fa-list-check', path: '/dashboard/tasks', section: 'Work' },
+    { id: 'leaves', label: 'Leave & WFH', icon: 'fa-umbrella-beach', path: '/dashboard/leaves', section: 'My Account' },
     { id: 'payroll', label: 'Payslips', icon: 'fa-file-invoice', path: '/dashboard/payroll' },
   ],
   'Intern': [
     { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2', path: '/dashboard' },
-    { id: 'tasks', label: 'My Tasks', icon: 'fa-list-check', badge: 'warn', path: '/dashboard/tasks' },
-    { id: 'leaves', label: 'My Leaves', icon: 'fa-umbrella-beach', path: '/dashboard/leaves', section: 'My Account' },
+    { id: 'daily-status', label: 'Daily Status', icon: 'fa-pen-to-square', path: '/dashboard/daily-status' },
+    { id: 'tasks', label: 'My Tasks', icon: 'fa-list-check', path: '/dashboard/tasks', section: 'Work' },
+    { id: 'leaves', label: 'Leave & WFH', icon: 'fa-umbrella-beach', path: '/dashboard/leaves', section: 'My Account' },
   ],
 };
 
@@ -33,6 +36,13 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api.get('/api/notifications')
+      .then(({ data }) => setUnreadCount((data || []).filter(n => !n.isRead).length))
+      .catch(() => {});
+  }, []);
 
   const navItems = NAV_ITEMS[user?.role] || NAV_ITEMS['Employee'];
 
@@ -86,8 +96,7 @@ const Sidebar = () => {
               >
                 <span className="nav-icon"><i className={`fas ${item.icon}`}></i></span>
                 <span>{item.label}</span>
-                {item.badge === 'brand' && <span className="nav-badge">5</span>}
-                {item.badge === 'warn' && <span className="nav-badge-warn">8</span>}
+                {item.badge === 'brand' && unreadCount > 0 && <span className="nav-badge">{unreadCount}</span>}
               </div>
             </React.Fragment>
           );

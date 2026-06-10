@@ -11,15 +11,16 @@ const DailyStatusLogSchema = new mongoose.Schema({
     required: true,
   },
   tasks: [{
-    task: { type: String, required: true },        // task title / description
+    task: { type: String, required: true },
     status: {
       type: String,
-      enum: ['Not Started', 'In Progress', 'Completed'],
+      enum: ['Not Started', 'In Progress', 'Completed', 'Blocked'],
       default: 'Not Started',
     },
-    progress: { type: Number, default: 0 },        // 0-100
-    updated: { type: String, default: '—' },       // e.g. "09:30 AM"
-    notes: { type: String, default: '' },          // comments
+    progress: { type: Number, default: 0 },
+    hoursSpent: { type: Number, default: 0 },
+    updated: { type: String, default: '—' },
+    notes: { type: String, default: '' },
   }],
   isLocked: {
     type: Boolean,

@@ -35,6 +35,29 @@ const createLeaveRequest = async (req, res) => {
       reason
     });
 
+    // Notify all HR users about the new request
+    const isWFH = type === 'Work from Home';
+    const hrUsers = await User.find({ role: 'HR' }).select('_id');
+    if (hrUsers.length > 0) {
+      const requester = await User.findById(req.user.id).select('name');
+      const notifType = isWFH ? 'wfh_request' : 'leave_request';
+      const notifTitle = isWFH
+        ? `WFH Request from ${requester.name}`
+        : `Leave Request from ${requester.name}`;
+      const notifMsg = `${requester.name} requested ${type} from ${startDate} to ${endDate} (${days} day${days > 1 ? 's' : ''}).`;
+
+      await Notification.insertMany(
+        hrUsers.map((hr) => ({
+          recipient: hr._id,
+          type: notifType,
+          title: notifTitle,
+          message: notifMsg,
+          relatedId: leave._id,
+          relatedModel: 'LeaveRequest',
+        }))
+      );
+    }
+
     res.status(201).json(leave);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -58,8 +81,8 @@ const updateLeaveStatus = async (req, res) => {
       return res.status(400).json({ message: `Leave request has already been ${leave.status.toLowerCase()}` });
     }
 
-    // If approving, ensure the employee has enough balance before committing
-    if (status === 'Approved') {
+    // If approving a leave (not WFH), check and deduct balance
+    if (status === 'Approved' && leave.type !== 'Work from Home') {
       const user = await User.findById(leave.employee._id);
       if (leave.days > user.leaveBalance.available) {
         return res.status(400).json({

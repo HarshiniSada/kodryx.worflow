@@ -77,7 +77,7 @@ const createDailyStatus = async (req, res) => {
   try {
     const { date, taskUpdate } = req.body;
 
-    if (!date || !taskUpdate || !taskUpdate.description) {
+    if (!date || !taskUpdate || (!taskUpdate.task && !taskUpdate.description)) {
       return res.status(400).json({ message: 'Date and task description are required' });
     }
 
@@ -88,10 +88,12 @@ const createDailyStatus = async (req, res) => {
     }
 
     const task = {
-      description: taskUpdate.description,
+      task: taskUpdate.task || taskUpdate.description || '',
       hoursSpent: taskUpdate.hoursSpent || 0,
       status: taskUpdate.status || 'In Progress',
-      lastUpdated: currentTimeLabel(),
+      progress: taskUpdate.progress != null ? Number(taskUpdate.progress) : 0,
+      notes: taskUpdate.notes || '',
+      updated: currentTimeLabel(),
     };
 
     if (!log) {
