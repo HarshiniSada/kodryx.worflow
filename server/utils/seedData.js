@@ -11,6 +11,7 @@ const LeaveRequest = require('../models/LeaveRequest');
 const Payroll = require('../models/Payroll');
 const Payslip = require('../models/Payslip');
 const Notification = require('../models/Notification');
+const Escalation = require('../models/Escalation');
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -113,6 +114,7 @@ const seedData = async (skipConnect = false) => {
       User.deleteMany(), Project.deleteMany(), Task.deleteMany(),
       DailyStatusLog.deleteMany(), Attendance.deleteMany(), LeaveRequest.deleteMany(),
       Payroll.deleteMany(), Payslip.deleteMany(), Notification.deleteMany(),
+      Escalation.deleteMany(),
     ]);
     console.log('Data Cleared!');
 
@@ -282,6 +284,22 @@ const seedData = async (skipConnect = false) => {
       { recipient: id('sarah'), type: 'attendance', title: 'Missing logout — Sam Osei', message: 'No logout recorded for Jun 7', isRead: false },
     ];
     await Notification.insertMany(notifs);
+
+    // ---- Escalations (mirrors prototype ESCALATION_SEED) ----
+    const HR = 3600 * 1000, DAY = 24 * HR, now = Date.now();
+    const av = (k) => created[k].avatar;
+    const escData = [
+      { escId: 'ESC-001', k: 'pn', priority: 'critical', category: 'Deadline Risk', project: 'Workday Project', task: 'Reconcile March carrier invoices (WF-218)', description: 'Invoice reconciliation is 2 days overdue with no activity log since Friday. Finance deadline at risk.', status: 'Open', created: now - (2 * DAY + 4 * HR) },
+      { escId: 'ESC-002', k: 'lf', priority: 'critical', category: 'Blocker', project: 'AI Research', task: 'Q1 fuel-cost variance report (WF-240)', description: 'Report blocked on finance data input. Waiting 3 days. Project milestone affected.', status: 'Under Review', created: now - (3 * DAY + 1 * HR) },
+      { escId: 'ESC-003', k: 'mw', priority: 'high', category: 'Technical Issue', project: 'AI Research', task: 'LLM fine-tuning v2 checkpoint', description: 'Model training stalled. GPU quota may be exhausted. AI Research sprint at 45% vs 60% expected.', status: 'In Progress', created: now - (1 * DAY + 2 * HR) },
+      { escId: 'ESC-004', k: 'so', priority: 'medium', category: 'Resource Issue', project: 'Internal Operations', task: 'Vendor SLA review', description: 'Vendor data feed was delayed 1 day. Now resolved — feed restored and SLA review completed ahead of schedule.', status: 'Resolved', created: now - (5 * HR) },
+    ];
+    await Escalation.insertMany(escData.map((e) => ({
+      escId: e.escId, member: created[e.k].name, memberUser: id(e.k), avatar: av(e.k),
+      priority: e.priority, category: e.category, project: e.project, task: e.task,
+      description: e.description, status: e.status, owner: 'Riya Kapoor', raisedBy: riyaId,
+      createdAt: new Date(e.created),
+    })));
 
     console.log('Data Imported!');
     if (require.main === module) process.exit();

@@ -44,6 +44,7 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/leaves', require('./routes/leaves'));
 app.use('/api/payroll', require('./routes/payroll'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/escalations', require('./routes/escalations'));
 
 // Basic route
 app.get('/api/health', (req, res) => {

@@ -7,6 +7,9 @@ import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import EmployeeOverview from '../employee/EmployeeOverview';
+import EscalateModal from '../../components/modals/EscalateModal';
+import EscalationDetailModal from '../../components/modals/EscalationDetailModal';
+import { ESC_PRI_CFG, ESC_STATUS_BADGE, escCounts, escTrend, escTimeAgo } from '../../data/escalations';
 
 // progress -> color (mirrors prototype thresholds)
 const progColor = (p) =>
@@ -30,8 +33,11 @@ const Overview = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openRows, setOpenRows] = useState({});
+  const [escalations, setEscalations] = useState([]);
+  const [showRaise, setShowRaise] = useState(false);
+  const [escDetail, setEscDetail] = useState(null);
 
-  useEffect(() => { fetchMeta(); }, []);
+  useEffect(() => { fetchMeta(); loadEsc(); }, []);
   useEffect(() => { fetchLogs(); }, [selectedDate]);
 
   const fetchMeta = async () => {
@@ -44,6 +50,13 @@ const Overview = () => {
       setProjects(p.data || []);
       setPeople(u.data || []);
       setTasks(t.data || []);
+    } catch (err) { /* ignore */ }
+  };
+
+  const loadEsc = async () => {
+    try {
+      const { data } = await api.get('/api/escalations');
+      setEscalations(data || []);
     } catch (err) { /* ignore */ }
   };
 
@@ -89,17 +102,28 @@ const Overview = () => {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
+  // Escalation summary
+  const escC = escCounts(escalations);
+  const escTrendData = escTrend(escalations);
+  const escMaxTrend = Math.max(1, ...escTrendData.map((d) => d.count));
+  const escRecent = [...escalations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+
   return (
     <div className="view active" id="view-overview">
       {/* Greeting */}
-      <div style={{ marginBottom: '22px' }}>
-        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>
-          Good morning, {user?.name?.split(' ')[0]} 👋
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>
+            Good morning, {user?.name?.split(' ')[0]} 👋
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--text2)' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            {' · '}{people.length} people · {projects.length} active projects
+          </div>
         </div>
-        <div style={{ fontSize: '13px', color: 'var(--text2)' }}>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-          {' · '}{people.length} people · {projects.length} active projects
-        </div>
+        <button className="btn-escalate btn-sm" onClick={() => setShowRaise(true)}>
+          <i className="fas fa-triangle-exclamation"></i> Raise escalation
+        </button>
       </div>
 
       {/* Stat cards */}
@@ -154,6 +178,59 @@ const Overview = () => {
           <div className={`stat-delta ${missingMembers.length > 0 ? 'delta-down' : 'delta-up'}`}>
             {missingMembers.length === 0 ? 'all submitted today' : `haven't submitted today`}
           </div>
+        </div>
+      </div>
+
+      {/* Escalation overview */}
+      <div className="two-col" style={{ marginBottom: '24px', gridTemplateColumns: '1.3fr 1fr' }}>
+        <div className="card">
+          <div className="section-hdr" style={{ marginBottom: '14px' }}>
+            <div className="section-title" style={{ fontSize: '15px' }}><i className="fas fa-triangle-exclamation" style={{ color: 'var(--danger)', marginRight: '6px' }}></i>Escalation overview</div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/escalations')}>Open center <i className="fas fa-arrow-right" style={{ fontSize: '10px' }}></i></Button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '16px' }}>
+            <div onClick={() => navigate('/dashboard/escalations', { state: { priorityFilter: 'critical' } })} style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px' }}><i className="fas fa-fire" style={{ fontSize: '9px' }}></i> Critical</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#DC2626', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{escC.critical}</div>
+            </div>
+            <div onClick={() => navigate('/dashboard/escalations', { state: { statusFilter: 'In Progress' } })} style={{ background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#9A3412', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px' }}><i className="fas fa-spinner" style={{ fontSize: '9px' }}></i> In progress</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#EA580C', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{escC.inprogress}</div>
+            </div>
+            <div onClick={() => navigate('/dashboard/escalations', { state: { statusFilter: 'Resolved' } })} style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px' }}><i className="fas fa-circle-check" style={{ fontSize: '9px' }}></i> Resolved</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#16A34A', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{escC.resolved}</div>
+            </div>
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>7-day trend</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '64px' }}>
+            {escTrendData.map((d, i) => (
+              <div key={i} className="esc-trend-bar">
+                <div className="esc-trend-col" style={{ height: Math.max(3, Math.round((d.count / escMaxTrend) * 44)) + 'px', background: d.count ? 'var(--danger)' : 'var(--border)' }} title={`${d.count} on ${d.label}`}></div>
+                <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{d.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card">
+          <div className="section-hdr" style={{ marginBottom: '14px' }}><div className="section-title" style={{ fontSize: '15px' }}>Recently raised</div></div>
+          {escRecent.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text3)', fontSize: '13px' }}>No escalations yet.</div>
+          ) : escRecent.map((e, i) => {
+            const pc = ESC_PRI_CFG[e.priority] || ESC_PRI_CFG.medium;
+            return (
+              <div key={e._id} onClick={() => setEscDetail(e)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 0', borderBottom: i === escRecent.length - 1 ? 'none' : '1px solid var(--border)', cursor: 'pointer' }}>
+                <div className="esc-pri-dot" style={{ background: pc.dot }}></div>
+                <Avatar initials={e.avatar?.initials} bg={e.avatar?.bg} color={e.avatar?.color} size="sm" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="truncate" style={{ fontSize: '12px', fontWeight: 600 }}>{e.member}</div>
+                  <div className="truncate" style={{ fontSize: '11px', color: 'var(--text2)' }}>{e.category} · {e.project}</div>
+                </div>
+                <Badge variant={ESC_STATUS_BADGE[e.status] || 'neutral'}>{e.status}</Badge>
+                <span style={{ fontSize: '10px', color: 'var(--text3)', whiteSpace: 'nowrap' }}>{escTimeAgo(e.createdAt)}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -351,6 +428,15 @@ const Overview = () => {
           })
         )}
       </div>
+
+      <EscalateModal isOpen={showRaise} onClose={() => setShowRaise(false)} onCreated={loadEsc} />
+      <EscalationDetailModal
+        isOpen={!!escDetail}
+        onClose={() => setEscDetail(null)}
+        escalation={escDetail}
+        canManage={user?.role === 'Founding Team' || user?.role === 'HR'}
+        onUpdated={(u) => { setEscalations((prev) => prev.map((e) => (e._id === u._id ? u : e))); setEscDetail(u); }}
+      />
     </div>
   );
 };

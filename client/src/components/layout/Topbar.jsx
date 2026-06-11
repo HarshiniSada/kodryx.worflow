@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import Avatar from '../common/Avatar';
 import api from '../../services/api';
@@ -16,13 +17,21 @@ const NOTIF_ICON = {
 
 const Topbar = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifs, setNotifs] = useState([]);
   const [open, setOpen] = useState(false);
+  const [escOpen, setEscOpen] = useState(0);
   const panelRef = useRef(null);
+  const isFounder = user?.role === 'Founding Team';
 
   useEffect(() => {
     api.get('/api/notifications').then(({ data }) => setNotifs(data || [])).catch(() => {});
-  }, []);
+    if (isFounder) {
+      api.get('/api/escalations')
+        .then(({ data }) => setEscOpen((data || []).filter(e => ['Open', 'Under Review', 'In Progress'].includes(e.status)).length))
+        .catch(() => {});
+    }
+  }, [isFounder]);
 
   // Refresh every 30s when panel is closed
   useEffect(() => {
@@ -74,6 +83,14 @@ const Topbar = () => {
           <i className="fas fa-magnifying-glass" style={{ color: 'var(--text3)', fontSize: '12px' }}></i>
           <input type="text" placeholder="Search tasks, people…" />
         </div>
+
+        {/* Escalation quick-access (Founding Team) */}
+        {isFounder && (
+          <div className="esc-header-btn" title="Open escalations" onClick={() => navigate('/dashboard/escalations')}>
+            <i className="fas fa-triangle-exclamation"></i>
+            {escOpen > 0 && <div className="esc-header-badge">{escOpen}</div>}
+          </div>
+        )}
 
         {/* Notification bell */}
         <div className="notif-btn" title="Notifications" onClick={handleOpen}

@@ -17,6 +17,7 @@ import ProjectDetail from './pages/dashboard/ProjectDetail';
 import Team from './pages/dashboard/Team';
 import EmployeeWorkflow from './pages/dashboard/EmployeeWorkflow';
 import Tasks from './pages/dashboard/Tasks';
+import Escalations from './pages/dashboard/Escalations';
 
 // Employee Self-Service
 import MyLeaves from './pages/employee/MyLeaves';
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="team" element={<Team />} />
               <Route path="team/:id" element={<EmployeeWorkflow />} />
               <Route path="tasks" element={<Tasks />} />
+              <Route path="escalations" element={<Escalations />} />
               <Route path="leaves" element={<MyLeaves />} />
               <Route path="payroll" element={<MyPayslips />} />
               <Route path="daily-status" element={<DailyStatusEntry />} />

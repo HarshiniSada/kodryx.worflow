@@ -6,7 +6,11 @@ import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import AssignTaskModal from '../../components/modals/AssignTaskModal';
+import EscalateModal from '../../components/modals/EscalateModal';
+import EscalationDetailModal from '../../components/modals/EscalationDetailModal';
+import useAuth from '../../hooks/useAuth';
 import { stVariant } from '../../data/prototypeData';
+import { ESC_PRI_CFG, ESC_STATUS_BADGE, escTimeAgo } from '../../data/escalations';
 
 const WORK_STATUS_VARIANT = (s) =>
   s === 'Blocked' ? 'warning' : s === 'Overdue task' ? 'danger' : s === 'In review' ? 'info' : 'success';
@@ -27,25 +31,32 @@ const EmployeeWorkflow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const canManage = user?.role === 'Founding Team' || user?.role === 'HR';
 
   const [employee, setEmployee] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [statusLogs, setStatusLogs] = useState([]);
+  const [escalations, setEscalations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePanel, setActivePanel] = useState(null);
   const [showAssign, setShowAssign] = useState(false);
+  const [showEsc, setShowEsc] = useState(false);
+  const [escDetail, setEscDetail] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [empRes, tasksRes, logsRes] = await Promise.all([
+        const [empRes, tasksRes, logsRes, escRes] = await Promise.all([
           api.get(`/api/users/${id}`),
           api.get('/api/tasks').catch(() => ({ data: [] })),
           api.get(`/api/daily-status/employee/${id}`).catch(() => ({ data: [] })),
+          api.get('/api/escalations').catch(() => ({ data: [] })),
         ]);
         setEmployee(empRes.data);
         setTasks((tasksRes.data || []).filter(t => t.assignee?._id === id || t.assignee === id));
         setStatusLogs(logsRes.data || []);
+        setEscalations((escRes.data || []).filter(e => e.member === empRes.data?.name));
       } catch {
         addToast('Failed to load employee details', 'error');
       } finally {
@@ -53,6 +64,13 @@ const EmployeeWorkflow = () => {
       }
     })();
   }, [id]);
+
+  const reloadEsc = async () => {
+    try {
+      const { data } = await api.get('/api/escalations');
+      setEscalations((data || []).filter(e => e.member === employee?.name));
+    } catch { /* ignore */ }
+  };
 
   if (loading) return <div style={{ padding: '24px', textAlign: 'center' }}><i className="fas fa-circle-notch fa-spin"></i> Loading...</div>;
   if (!employee) return <div style={{ padding: '24px' }}>Employee not found</div>;

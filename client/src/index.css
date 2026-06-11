@@ -523,6 +523,29 @@ select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+x
   .hr-nav-item{justify-content:center;padding:10px}
 }
 
+/* ===== ESCALATIONS (ported from prototype v45) ===== */
+.btn-escalate{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;background:var(--danger);color:#fff;border:1.5px solid var(--danger);transition:var(--trans)}
+.btn-escalate:hover{background:#DC2626;border-color:#DC2626;box-shadow:0 2px 8px rgba(239,68,68,.3)}
+.btn-escalate:active{transform:scale(0.97)}
+.btn-escalate:disabled{opacity:.6;cursor:default}
+.btn-escalate.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
+.btn-escalate.btn-outline{background:#fff;color:var(--danger);border-color:#FECACA}
+.btn-escalate.btn-outline:hover{background:#FEF2F2;border-color:var(--danger);box-shadow:none}
+.esc-header-btn{position:relative;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);background:var(--bg2);transition:var(--trans)}
+.esc-header-btn:hover{background:var(--danger-bg);color:var(--danger)}
+.esc-header-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
+.esc-filter-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.esc-select{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;color:var(--text);background:var(--surface);cursor:pointer;font-family:inherit}
+.esc-select:focus{outline:none;border-color:var(--brand)}
+.esc-search{display:flex;align-items:center;gap:8px;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);min-width:220px;flex:1}
+.esc-search input{border:none;outline:none;font-size:13px;background:transparent;width:100%;font-family:inherit;color:var(--text)}
+.esc-row{border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px;background:var(--surface);cursor:pointer;transition:var(--trans);animation:fadeIn 0.2s ease}
+.esc-row:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
+.esc-pri-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.esc-status-select{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;background:var(--surface);color:var(--text)}
+.esc-trend-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.esc-trend-col{width:100%;max-width:26px;border-radius:4px 4px 0 0;background:var(--brand);min-height:3px;transition:height 0.3s ease}
+
 /* ===== EXTRA ANIMATION POLISH (additive) ===== */
 @keyframes popIn{from{opacity:0;transform:scale(0.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}

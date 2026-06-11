@@ -9,6 +9,7 @@ const NAV_ITEMS = {
     { id: 'projects', label: 'Projects', icon: 'fa-folder-open', path: '/dashboard/projects' },
     { id: 'team', label: 'Team', icon: 'fa-users', path: '/dashboard/team' },
     { id: 'tasks', label: 'Tasks', icon: 'fa-list-check', path: '/dashboard/tasks' },
+    { id: 'escalations', label: 'Escalation Center', icon: 'fa-triangle-exclamation', path: '/dashboard/escalations', section: 'Escalations', badge: 'escalation' },
   ],
   'HR': [
     { id: 'overview', label: 'Dashboard', icon: 'fa-grid-2', path: '/hr' },
@@ -37,12 +38,18 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [escOpen, setEscOpen] = useState(0);
 
   useEffect(() => {
     api.get('/api/notifications')
       .then(({ data }) => setUnreadCount((data || []).filter(n => !n.isRead).length))
       .catch(() => {});
-  }, []);
+    if (user?.role === 'Founding Team') {
+      api.get('/api/escalations')
+        .then(({ data }) => setEscOpen((data || []).filter(e => ['Open', 'Under Review', 'In Progress'].includes(e.status)).length))
+        .catch(() => {});
+    }
+  }, [user?.role]);
 
   const navItems = NAV_ITEMS[user?.role] || NAV_ITEMS['Employee'];
 
@@ -97,6 +104,7 @@ const Sidebar = () => {
                 <span className="nav-icon"><i className={`fas ${item.icon}`}></i></span>
                 <span>{item.label}</span>
                 {item.badge === 'brand' && unreadCount > 0 && <span className="nav-badge">{unreadCount}</span>}
+                {item.badge === 'escalation' && escOpen > 0 && <span className="nav-badge" style={{ background: 'var(--danger)', color: '#fff' }}>{escOpen}</span>}
               </div>
             </React.Fragment>
           );
